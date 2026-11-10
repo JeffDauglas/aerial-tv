@@ -304,7 +304,7 @@
     <!-- Questions between programmes (settings/QuizGate, ui/home/QuizBox) -->
     <string name="quiz_title">Вопрос каждые %d мин</string>
     <string name="quiz_hint">Ответьте, и передача продолжится.</string>
-    <string name="quiz_wrong">Не совсем. Ещё %d попытки или новый вопрос.</string>
+    <string name="quiz_wrong">Неверно. Продолжайте, пока не ответите правильно.</string>
     <string name="quiz_more">Осталось верных ответов: %d.</string>
     <string name="quiz_kind">Спрашивать</string>
     <string name="quiz_kind_hint">О чём будут вопросы.</string>

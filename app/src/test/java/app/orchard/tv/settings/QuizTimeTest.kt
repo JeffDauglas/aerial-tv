@@ -135,8 +135,6 @@ class QuizTimeTest {
         // Nothing beyond what the settings and the box can use.
         assertTrue(!QuizRules(everyMinutes = QuizGate.MAX_EVERY + 1).valid)
         assertTrue(!QuizRules(everyMinutes = -1).valid)
-        assertTrue(!QuizRules(correct = 0).valid)
-        assertTrue(!QuizRules(tries = 0).valid)
         // The kinds are read back from what is stored, and an unknown one is both.
         QuizKind.entries.forEach { assertEquals(it, QuizKind.of(it.key)) }
         assertEquals(Both, QuizKind.of(null))

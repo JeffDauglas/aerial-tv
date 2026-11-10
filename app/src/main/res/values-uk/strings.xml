@@ -304,7 +304,7 @@
     <!-- Questions between programmes (settings/QuizGate, ui/home/QuizBox) -->
     <string name="quiz_title">Питання що %d хв</string>
     <string name="quiz_hint">Дайте відповідь, і програма продовжиться.</string>
-    <string name="quiz_wrong">Не зовсім. Ще %d спроби або нове питання.</string>
+    <string name="quiz_wrong">Неправильно. Продовжуйте, доки не відповісте правильно.</string>
     <string name="quiz_more">Лишилося правильних відповідей: %d.</string>
     <string name="quiz_kind">Питати</string>
     <string name="quiz_kind_hint">Про що будуть питання.</string>

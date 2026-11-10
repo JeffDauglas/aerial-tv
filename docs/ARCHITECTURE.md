@@ -173,7 +173,7 @@ Logo 的大小统一：先在 256×256 的采样里找出 Logo 的范围，再�
 - **什么时候出**：`QuizWatch` 照 `KidsWatch` 的样子每 10 秒 tick 一次。只算「在看」的时间：前台是别处 App（`!homeInFront`），或 Aerial 首页并且有东西在动（`LiveFilm.onHome?.moving`，或「我的视频」壁纸 `HomeVideo.onHome != null`——它没有状态说明停没停，停在面板上时按在动算）；首页盖着面板时（`QuizWatch.panelOpen`，`HomeScreen` 跟着 `vm.overlay` 写）不算，摆弄设置不该被拦下来答题；屏保（`AerialDream.showing`）和待机不算。累计到 `everyMinutes` 就出题。两次之间至少隔 5 分钟（`MIN_GAP_MS`），免得刚答完又来。两次 tick 之间超过 20 秒当作待机（`since.coerceAtMost(2 * TICK_MS)`），和 `KidsWatch` 一样。
 - **存盘**：走 `SharedPreferences("quiz")`，`watched_ms`、`due` 和 `asked_at`。重启不清零，看到一半关机再开接着算；`due` 让上次没答的题重启后还在；`asked_at` 保存后续题的最小间隔。首次没有时间戳时，看满间隔即可出题。
 - **停与播**：`filmMoves` 显式排除 `quizOpen`，暂停壁纸，答完恢复。别处 App 正在播时，`QuizWatch.bringBack`（3 秒节流，守护的 `HomeGuardService.bringAerialBack`，没有守护就 `MainActivity.bringBackIntent`）把 Aerial 拉回来。答完 `QuizWatch.onAnswered()` 尝试返回被打断的 App 任务，并重启计时；第三方播放是否自动恢复仍需真机验证。
-- **答完的条件**：答对 `rules.correct` 次（默认 1）或答错 `rules.tries` 次（默认 3）。答错就换一题、接着试，所以不会把电视锁死；也正因为有这个兜底，家长不在家时孩子自己也能过去。答对一题但还没答够时也换题（选项重排，不会记住位置）。
+- **答完的条件**：答对一题立即放行；答错则随机换一道题，必须继续直到答对，不按答错次数放行。最近 50 道已出题的标识保存在 `quiz/recent_questions`，重启、关闭再开启仍保留。选项顺序不影响标识，加法和乘法交换操作数也视为同一道。出题使用进程随机源，避免相同毫秒的种子产生重复题。
 - **焦点和按键**：出题时 `HomeScreen` 的 `gridEnabled` 为 false，根 `BackHandler` 关掉，根 `onPreviewKeyEvent` 只吞 Menu 和设置键（和儿童模式锁屏一样）；`QuizBox` 里数字键 1–4 直接选（选项右下角标着号码），Back 无效。儿童模式的锁在的时候不弹（`quizOpen` 要求 `kidsLock == null`）：锁先来，解锁后题还在，下一次 tick 就出来。答完 `QuizWatch.poke()` 立刻重算一次，刚答完不会再出。
 - **测试**：`ConfigReceiver --ez quiz_now true` 马上出题；`--ei quiz_minutes 1` 改成 1 分钟；`--es quiz_kind math|english|both` 换个题型；`--ez quiz_off true` 关掉。`dumpsys activity …MainActivity` 打印 `Quiz …` 一行（规则、已看多久、还差多少、是否正显示、是否在前台）。控制中心在儿童模式那一页、今天还剩多少时间下面多一行「%s 后答题」（`quizLine`）。
 

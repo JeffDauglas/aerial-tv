@@ -54,8 +54,7 @@ import app.orchard.tv.ui.theme.Type
 /**
  * The question between programmes (QuizGate): a grade 2 sum or a word, over everything. Nothing
  * behind it is reachable; Back and the remote's Menu do nothing, since the box is answered, not
- * dismissed. Answering it right (or getting it wrong as often as the rules allow, so that nobody
- * is stuck) closes it. HomeScreen pauses its wallpapers while this box is visible; onDone also
+ * dismissed. Only a correct answer closes it. HomeScreen pauses its wallpapers while this box is visible; onDone also
  * asks QuizWatch to return to an interrupted app, whose playback follows its own lifecycle.
  *
  * [onDone] runs once it is answered: Home closes the overlay and the count starts again.
@@ -141,8 +140,8 @@ fun QuizBox(visible: Boolean, onDone: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 BasicText(
                     text = when {
-                        wrong > 0 -> stringResource(R.string.quiz_wrong, (QuizGate.rules.tries - wrong).coerceAtLeast(1))
-                        QuizGate.rules.correct > QuizGate.right -> stringResource(R.string.quiz_more, QuizGate.rules.correct - QuizGate.right)
+                        wrong > 0 -> stringResource(R.string.quiz_wrong)
+                        wrong == 0 -> stringResource(R.string.quiz_hint)
                         else -> stringResource(R.string.quiz_hint)
                     },
                     style = Type.Caption.copy(
@@ -171,9 +170,8 @@ fun QuizBox(visible: Boolean, onDone: () -> Unit) {
 }
 
 /**
- * The answer at [i] picked: QuizGate decides, and [onDone] runs when that was the last one (right
- * enough, or wrong as often as the rules allow). A wrong answer still owed a try leaves the box up
- * with the next question, and focus back on the first answer.
+ * The answer at [i] picked: only a correct answer runs [onDone]. A wrong answer leaves the box
+ * up with a fresh question, and focus back on the first answer.
  */
 private fun answer(i: Int, first: FocusRequester, onDone: () -> Unit) {
     val finished = QuizGate.answer(i, System.currentTimeMillis())

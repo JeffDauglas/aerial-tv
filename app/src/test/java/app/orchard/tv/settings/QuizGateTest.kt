@@ -41,14 +41,31 @@ class QuizGateTest {
     }
 
     @Test
-    fun thirdWrongAnswerClosesButEarlierOnesDoNot() {
+    fun wrongAnswersNeverReleaseAndRecentQuestionsDoNotRepeat() {
         QuizGate.show(1_000_000L)
-        repeat(3) { attempt ->
+        val seen = mutableSetOf(QuizGate.question!!.identity)
+        repeat(100) { attempt ->
             val q = QuizGate.question!!
-            assertEquals(attempt == 2, QuizGate.answer((q.answer + 1) % q.options.size, 1_000_001L + attempt))
+            assertFalse(QuizGate.answer((q.answer + 1) % q.options.size, 1_000_001L + attempt))
+            if (attempt < 49) assertTrue(seen.add(QuizGate.question!!.identity))
         }
-        assertFalse(QuizGate.showing)
-        assertFalse(QuizGate.usage.due)
+        assertTrue(QuizGate.showing)
+        assertTrue(QuizGate.usage.due)
+        assertTrue(QuizGate.answer(QuizGate.question!!.answer, 2_000_000L))
+    }
+
+    @Test
+    fun recentQuestionsSurviveReinitialization() {
+        QuizGate.show(1_000_000L)
+        val previous = QuizGate.question!!.identity
+        QuizGate.answer(QuizGate.question!!.answer, 1_000_001L)
+        QuizGate::class.java.getDeclaredField("started").apply { isAccessible = true }.setBoolean(null, false)
+        QuizGate.init(app)
+        repeat(30) {
+            QuizGate.show(1_100_000L + it)
+            assertNotEquals(previous, QuizGate.question!!.identity)
+            QuizGate.answer(QuizGate.question!!.answer, 1_100_001L + it)
+        }
     }
 
     @Test

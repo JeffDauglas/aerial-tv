@@ -51,6 +51,15 @@ data class QuizQuestion(
 ) {
     val right: String get() = options[answer]
 
+    /** Stable across answer shuffling; commuted sums and products are the same exercise. */
+    val identity: String get() {
+        if (ask != null) return "${ask.name}|$subject"
+        val parts = prompt.split(" ")
+        return if (parts.size >= 3 && parts[1] in listOf("+", "×")) {
+            "${parts[1]}|${listOf(parts[0].toInt(), parts[2].toInt()).sorted().joinToString(",")}"
+        } else prompt
+    }
+
     init {
         require(answer in options.indices) { "the answer is one of the options" }
         require(options.size >= 2 && options.size == options.distinct().size) { "options are distinct" }
@@ -61,14 +70,10 @@ data class QuizQuestion(
 data class QuizRules(
     val everyMinutes: Int = QuizGate.DEFAULT_EVERY,
     val kind: QuizKind = QuizKind.Both,
-    /** Questions to get right before the programme comes back. */
-    val correct: Int = 1,
-    /** This many wrong lets it on anyway, so that nobody is stuck at a question. */
-    val tries: Int = 3,
 ) {
     val on: Boolean get() = everyMinutes > 0
 
-    val valid: Boolean get() = everyMinutes in 0..QuizGate.MAX_EVERY && correct in 1..5 && tries in 1..5
+    val valid: Boolean get() = everyMinutes in 0..QuizGate.MAX_EVERY
 }
 
 /** Watched since the box last opened, and whether a question was left unanswered. */
@@ -205,6 +210,8 @@ object QuizTime {
 object QuizGate {
     private const val PREFS = "quiz"
     private var started = false
+    private val recent = ArrayDeque<String>()
+    private const val RECENT_LIMIT = 50
     private lateinit var app: Context
 
     /** A question every quarter of an hour unless another is chosen: what was asked for. */
@@ -243,13 +250,13 @@ object QuizGate {
         rules = QuizRules(
             everyMinutes = p.getInt("every_minutes", DEFAULT_EVERY),
             kind = QuizKind.of(p.getString("kind", null)),
-            correct = p.getInt("correct", 1),
-            tries = p.getInt("tries", 3),
         ).takeIf { it.valid } ?: QuizRules()
         usage = QuizUsage(watchedMs = p.getLong("watched_ms", 0), due = p.getBoolean("due", false))
         // Kept too, so that a restart does not count as "never asked" and hold the first question
         // back for MIN_GAP_MS.
         askedAt = p.getLong("asked_at", 0)
+        recent.clear()
+        recent.addAll(p.getString("recent_questions", "").orEmpty().split("\n").filter { it.isNotEmpty() }.takeLast(RECENT_LIMIT))
         // Left unanswered when Aerial stopped (the TV went off, another app took the front): the
         // question comes back with the next look (QuizWatch.tick), not here, where Aerial may still
         // be starting and nothing of it is on screen yet.
@@ -268,7 +275,6 @@ object QuizGate {
         rules = r
         prefs().edit {
             putInt("every_minutes", r.everyMinutes); putString("kind", r.kind.key)
-            putInt("correct", r.correct); putInt("tries", r.tries)
         }
         when {
             !r.on -> {
@@ -320,39 +326,42 @@ object QuizGate {
         stamp(now)
         right = 0
         wrong = 0
-        question = QuizTime.question(rules.kind, Random(now))
+        question = nextQuestion()
         due = true
         saveUsage(usage.copy(watchedMs = 0, due = true))
     }
 
-    /**
-     * The answer picked, at [now]. True when that was the last one and the box closes: right
-     * enough ([QuizRules.correct]), or wrong as often as the rules allow ([QuizRules.tries], so
-     * that nobody is stuck). False when the box stays up with the next question.
-     */
+    /** A correct answer releases the gate; wrong answers always require another question. */
     fun answer(picked: Int, now: Long): Boolean {
-        val q = question ?: return true
+        val q = question ?: return false
         if (QuizTime.check(q, picked)) {
-            right++
-            if (right >= rules.correct) {
-                done()
-                return true
-            }
-            // More than one right to go: the next question, and a wrong answer already made here
-            // still counts toward being let on.
-            question = QuizTime.question(rules.kind, Random(now))
-            return false
-        }
-        wrong++
-        if (wrong >= rules.tries) {
             done()
             return true
         }
-        question = QuizTime.question(rules.kind, Random(now))
+        wrong++
+        question = nextQuestion()
         return false
     }
 
-    /** Answered, or let on: the box closes and the programme goes on. */
+    private fun nextQuestion(): QuizQuestion {
+        // Option shuffling does not make a new exercise. Use the process random source so
+        // answering several times in the same millisecond cannot repeat a seeded sequence.
+        var fresh: QuizQuestion? = null
+        for (attempt in 0 until 2048) {
+            val candidate = QuizTime.question(rules.kind, Random.Default)
+            if (candidate.identity !in recent) {
+                fresh = candidate
+                break
+            }
+        }
+        val q = checkNotNull(fresh) { "could not draw a fresh question" }
+        recent.addLast(q.identity)
+        while (recent.size > RECENT_LIMIT) recent.removeFirst()
+        prefs().edit { putString("recent_questions", recent.joinToString("\n")) }
+        return q
+    }
+
+    /** Answered correctly: the box closes and the programme goes on. */
     fun done() {
         due = false
         question = null
