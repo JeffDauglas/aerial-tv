@@ -308,4 +308,21 @@
     <string name="kids_blocked">%s is not allowed here</string>
     <string name="kids_warn">%d min of TV left</string>
     <string name="kids_warn_break">A break in %d min</string>
+
+    <!-- Questions between programmes (settings/QuizGate, ui/home/QuizBox) -->
+    <string name="quiz_title">A question every %d min</string>
+    <string name="quiz_hint">Answer it, and the programme goes on.</string>
+    <string name="quiz_wrong">Not quite. %d more tries, or a new question.</string>
+    <string name="quiz_more">%d more right to go.</string>
+    <string name="quiz_kind">Ask</string>
+    <string name="quiz_kind_hint">What the questions are about.</string>
+    <string name="quiz_kind_math">Sums</string>
+    <string name="quiz_kind_english">English</string>
+    <string name="quiz_kind_both">Both</string>
+    <string name="quiz_minutes">Every</string>
+    <string name="quiz_minutes_hint">Minutes of watching before a question.</string>
+    <string name="cc_quiz_left">A question in %s</string>
+    <!-- The question itself, on the box (QuizTime): the same for every kind, since it is read as a line. -->
+    <string name="quiz_what_in_english">What is this in English?</string>
+    <string name="quiz_how_many">How many?</string>
 </resources>

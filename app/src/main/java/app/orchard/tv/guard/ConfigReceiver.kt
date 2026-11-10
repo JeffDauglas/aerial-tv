@@ -5,8 +5,10 @@ import android.content.Context
 import android.content.Intent
 import app.orchard.tv.apps.TileSheet
 import app.orchard.tv.settings.AerialSettings
-import app.orchard.tv.settings.Restricted
 import app.orchard.tv.settings.Effects
+import app.orchard.tv.settings.QuizGate
+import app.orchard.tv.settings.QuizKind
+import app.orchard.tv.settings.Restricted
 import app.orchard.tv.system.DeviceProfile
 import app.orchard.tv.system.DiagLog
 import app.orchard.tv.system.HisenseSources
@@ -31,6 +33,11 @@ import kotlinx.coroutines.launch
  *   ... --ei kids_used_minutes 55   (count that many minutes as watched today, for trying the
  *                                   limits and their warnings without waiting)
  *   ... --ei kids_continuous_minutes 28  (that many minutes watched since the last break)
+ *   ... --ei quiz_minutes 1         (a question every minute of watching, for trying the box;
+ *                                   0 turns questions off)
+ *   ... --ez quiz_off true          (turn questions off, the rest of the rules kept)
+ *   ... --ez quiz_now true          (a question at once, as if the minutes were up)
+ *   ... --es quiz_kind math|english|both
  *   ... --ez large_clock true --ez clock_right false --ez one_row_home true
  *       --ez peek_next_row false --ez home_plate true --ez show_all_names false --ei home_columns 6
  *                                   (Home's layout, as in Personalize; for screenshots of each)
@@ -114,6 +121,24 @@ class ConfigReceiver : BroadcastReceiver() {
             Restricted.saveUsage(Restricted.usage.copy(continuousMs = intent.getIntExtra("kids_continuous_minutes", 0) * 60_000L, breakUntil = 0, allowUntil = 0))
         }
         if (listOf("kids_off", "kids_used_minutes", "kids_continuous_minutes", "clear_pin").any(intent::hasExtra)) KidsWatch.poke()
+        // ... --ei quiz_minutes 1        (a question every minute of watching, for trying the box;
+        //                                 0 turns questions off)
+        // ... --ez quiz_off true         (turn questions off, the rest of the rules kept)
+        // ... --ez quiz_now true         (a question at once, as if the minutes were up)
+        // ... --es quiz_kind math|english|both
+        val quiz = listOf("quiz_off", "quiz_minutes", "quiz_kind", "quiz_now")
+        if (quiz.any(intent::hasExtra)) {
+            QuizGate.init(context)
+            if (intent.hasExtra("quiz_minutes")) QuizGate.every(intent.getIntExtra("quiz_minutes", QuizGate.DEFAULT_EVERY))
+            if (intent.hasExtra("quiz_kind")) QuizGate.chooseRules(QuizGate.rules.copy(kind = QuizKind.of(intent.getStringExtra("quiz_kind"))))
+            // Last, so that turning them off wins over a gap given in the same command.
+            if (intent.getBooleanExtra("quiz_off", false)) QuizGate.turnOff()
+            if (intent.getBooleanExtra("quiz_now", false)) {
+                QuizWatch.askNow(context)
+            } else {
+                QuizWatch.poke()
+            }
+        }
         val layout = mapOf<String, (Boolean) -> Unit>(
             "large_clock" to AerialSettings::chooseLargeClock,
             "clock_right" to AerialSettings::chooseClockRight,

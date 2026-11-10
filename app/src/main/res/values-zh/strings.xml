@@ -307,4 +307,20 @@
     <string name="kids_blocked">「%s」不在这个模式里</string>
     <string name="kids_warn">还能看 %d 分钟</string>
     <string name="kids_warn_break">%d 分钟后休息一下</string>
+
+    <!-- Questions between programmes (settings/QuizGate, ui/home/QuizBox) -->
+    <string name="quiz_title">每 %d 分钟答一题</string>
+    <string name="quiz_hint">答对了才继续播放。</string>
+    <string name="quiz_wrong">答错了，还能再试 %d 次，或者换一题。</string>
+    <string name="quiz_more">还要答对 %d 题。</string>
+    <string name="quiz_kind">出题</string>
+    <string name="quiz_kind_hint">出算术题还是英语题。</string>
+    <string name="quiz_kind_math">算术</string>
+    <string name="quiz_kind_english">英语</string>
+    <string name="quiz_kind_both">都要</string>
+    <string name="quiz_minutes">间隔</string>
+    <string name="quiz_minutes_hint">看多少分钟电视出一道题。</string>
+    <string name="cc_quiz_left">%s 后答题</string>
+    <string name="quiz_what_in_english">这个用英语怎么说？</string>
+    <string name="quiz_how_many">一共有几个？</string>
 </resources>

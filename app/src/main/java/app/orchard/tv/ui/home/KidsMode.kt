@@ -50,8 +50,11 @@ import app.orchard.tv.R
 import app.orchard.tv.apps.AppEntry
 import app.orchard.tv.guard.HomeGuardService
 import app.orchard.tv.guard.KidsWatch
+import app.orchard.tv.guard.QuizWatch
 import app.orchard.tv.settings.KidsLock
 import app.orchard.tv.settings.KidsTime
+import app.orchard.tv.settings.QuizGate
+import app.orchard.tv.settings.QuizKind
 import app.orchard.tv.settings.Restricted
 import app.orchard.tv.settings.RestrictedKind
 import app.orchard.tv.ui.components.Pressable
@@ -72,6 +75,17 @@ private val DAY_MINUTES = listOf(0, 30, 60, 90, 120)
 /** Where the window ends, in minutes of the day; 0 is all day. */
 private val END_MINUTES = listOf(0, 20 * 60, 21 * 60, 22 * 60)
 private val BREAKS = listOf(0, 30, 45, 60)
+
+/** Minutes of watching between questions, as the TV offers them; 0 is off. */
+private val QUIZ_MINUTES = listOf(0, 10, 15, 20, 30)
+
+/** The name each kind of question goes by, in the interface's language. */
+private val QuizKind.label: Int
+    get() = when (this) {
+        QuizKind.Math -> R.string.quiz_kind_math
+        QuizKind.English -> R.string.quiz_kind_english
+        QuizKind.Both -> R.string.quiz_kind_both
+    }
 
 /** The TV's few values, and the one set on the phone page after them when it is none of them. */
 private fun withCustom(presets: List<Int>, current: Int) = if (current in presets) presets else presets + current
@@ -181,6 +195,23 @@ private fun SetupSettings(hasApps: Boolean, onStart: () -> Unit, modifier: Modif
                 withCustom(BREAKS, rules.breakEvery).forEach { m ->
                     SmallChip(if (m == 0) stringResource(R.string.st_off) else m.toString(), rules.breakEvery == m) {
                         Restricted.chooseRules(rules.copy(breakEvery = m)); KidsWatch.poke()
+                    }
+                }
+            }
+            // Questions between programmes: for children, a sum or a word before the programme
+            // goes on. Counted in watching, as the breaks are.
+            val quiz = QuizGate.rules
+            SetupRow(R.string.quiz_minutes, stringResource(R.string.quiz_minutes_hint), { note = it }) {
+                withCustom(QUIZ_MINUTES, quiz.everyMinutes).forEach { m ->
+                    SmallChip(if (m == 0) stringResource(R.string.st_off) else m.toString(), quiz.everyMinutes == m) {
+                        QuizGate.every(m); QuizWatch.poke()
+                    }
+                }
+            }
+            if (quiz.on) SetupRow(R.string.quiz_kind, stringResource(R.string.quiz_kind_hint), { note = it }) {
+                QuizKind.entries.forEach { k ->
+                    SmallChip(stringResource(k.label), quiz.kind == k) {
+                        QuizGate.chooseRules(quiz.copy(kind = k)); QuizWatch.poke()
                     }
                 }
             }
@@ -400,4 +431,16 @@ fun kidsTimeLine(): String? {
     val limit = Restricted.limitToday(now)
     if (limit == 0) return stringResource(R.string.cc_kids_no_limit, durationText(usage.usedMs))
     return stringResource(R.string.cc_kids_left, durationText((limit * 60_000L - usage.usedMs).coerceAtLeast(0)))
+}
+
+/**
+ * Control Center's line about the next question (QuizGate), under the day's time: how much
+ * watching is left before the picture stops. Null with questions off, or none of the time left.
+ */
+@Composable
+fun quizLine(): String? {
+    val left = QuizGate.leftMs() ?: return null
+    val minutes = (left / 60_000L).toInt()
+    if (minutes < 1) return null
+    return stringResource(R.string.cc_quiz_left, durationText(left))
 }

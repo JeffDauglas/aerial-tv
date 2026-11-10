@@ -300,4 +300,20 @@
     <string name="kids_blocked">«%s» мұнда қолжетімсіз</string>
     <string name="kids_warn">%d мин қалды</string>
     <string name="kids_warn_break">%d минуттан кейін үзіліс</string>
+
+    <!-- Questions between programmes (settings/QuizGate, ui/home/QuizBox) -->
+    <string name="quiz_title">Әр %d минут сайын сұрақ</string>
+    <string name="quiz_hint">Жауап беріңіз, сонда бағдарлама жалғасады.</string>
+    <string name="quiz_wrong">Дәл емес. Тағы %d әрекет немесе жаңа сұрақ.</string>
+    <string name="quiz_more">Тағы %d дұрыс жауап керек.</string>
+    <string name="quiz_kind">Сұрау</string>
+    <string name="quiz_kind_hint">Сұрақтар не туралы болады.</string>
+    <string name="quiz_kind_math">Мысалдар</string>
+    <string name="quiz_kind_english">Ағылшын</string>
+    <string name="quiz_kind_both">Екеуі де</string>
+    <string name="quiz_minutes">Сайын</string>
+    <string name="quiz_minutes_hint">Сұраққа дейінгі көру минуттары.</string>
+    <string name="cc_quiz_left">%s кейін сұрақ</string>
+    <string name="quiz_what_in_english">Бұл ағылшынша қалай?</string>
+    <string name="quiz_how_many">Қанша дана?</string>
 </resources>

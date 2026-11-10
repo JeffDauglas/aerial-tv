@@ -300,4 +300,20 @@
     <string name="kids_blocked">«%s» здесь недоступно</string>
     <string name="kids_warn">Осталось %d мин</string>
     <string name="kids_warn_break">Перерыв через %d мин</string>
+
+    <!-- Questions between programmes (settings/QuizGate, ui/home/QuizBox) -->
+    <string name="quiz_title">Вопрос каждые %d мин</string>
+    <string name="quiz_hint">Ответьте, и передача продолжится.</string>
+    <string name="quiz_wrong">Не совсем. Ещё %d попытки или новый вопрос.</string>
+    <string name="quiz_more">Осталось верных ответов: %d.</string>
+    <string name="quiz_kind">Спрашивать</string>
+    <string name="quiz_kind_hint">О чём будут вопросы.</string>
+    <string name="quiz_kind_math">Примеры</string>
+    <string name="quiz_kind_english">Английский</string>
+    <string name="quiz_kind_both">И то и другое</string>
+    <string name="quiz_minutes">Каждые</string>
+    <string name="quiz_minutes_hint">Минут просмотра до вопроса.</string>
+    <string name="cc_quiz_left">Вопрос через %s</string>
+    <string name="quiz_what_in_english">Как это по-английски?</string>
+    <string name="quiz_how_many">Сколько штук?</string>
 </resources>

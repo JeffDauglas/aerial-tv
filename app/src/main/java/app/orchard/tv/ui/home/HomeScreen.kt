@@ -76,7 +76,9 @@ import app.orchard.tv.Overlay
 import app.orchard.tv.R
 import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.settings.Restricted
+import app.orchard.tv.settings.QuizGate
 import app.orchard.tv.guard.KidsWatch
+import app.orchard.tv.guard.QuizWatch
 import app.orchard.tv.apps.AppEntry
 import app.orchard.tv.ui.control.ControlCenter
 import app.orchard.tv.ui.wallpaper.SheetCovers
@@ -312,9 +314,13 @@ fun HomeScreen(
     val focusedIndex = apps.indexOfFirst { it.key == focusedKey }
     val columns = AerialSettings.homeColumns
     val focusedRow = if (pillFocused || focusedIndex < 0) 0 else focusedIndex / columns
-    // Kids mode's lock covers Home: nothing under it takes focus.
+    // Kids mode's lock covers Home: nothing under it takes focus. A question covers it the same
+    // way, answered before anything else can be reached.
     val kidsLock = if (Restricted.active) Restricted.lock else null
-    val gridEnabled = overlay == Overlay.None && kidsLock == null
+    // The box waits under a lock: the lock comes first, and the question comes back once it is
+    // answered (the rules still hold it, QuizGate.showing, so it opens again on the next look).
+    val quizOpen = QuizGate.showing && kidsLock == null
+    val gridEnabled = overlay == Overlay.None && kidsLock == null && !quizOpen
 
     // The aerial wallpaper's film, and how far it shows through.
     val filmCover = remember { Animatable(0f) }
@@ -466,7 +472,7 @@ fun HomeScreen(
         }
     }
 
-    BackHandler(enabled = overlay == Overlay.None && moving == null) {
+    BackHandler(enabled = overlay == Overlay.None && moving == null && !quizOpen) {
         // tvOS: Back from inside the grid returns to the top row; Back on the top row starts the
         // screensaver. A grid scrolled by touch counts as being inside it.
         val scrolled = dragged && scroll.value > 1f
@@ -502,6 +508,12 @@ fun HomeScreen(
                     return@onPreviewKeyEvent true
                 }
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                // A question up: the box answers to its own keys, and nothing behind it does.
+                // Menu and the settings key stay shut, as they are in Kids mode.
+                if (quizOpen) {
+                    return@onPreviewKeyEvent e.nativeKeyEvent.keyCode == NativeKeyEvent.KEYCODE_MENU ||
+                        e.nativeKeyEvent.keyCode == NativeKeyEvent.KEYCODE_SETTINGS
+                }
                 when (e.nativeKeyEvent.keyCode) {
                     NativeKeyEvent.KEYCODE_MENU -> {
                         if (kidsLock != null) return@onPreviewKeyEvent true
@@ -625,7 +637,7 @@ fun HomeScreen(
         // drawn cuts no hole in the window, so the paused film showed as the window's black
         // (Xiaomi MiTV-MFTR0, the aerial wallpaper under Control Center).
         val filmMoves = vm.filmFront && overlay == Overlay.None && !vm.screensaverVisible && !pastShelf &&
-            !inGrid && moving == null
+            !inGrid && moving == null && !quizOpen
         val sourceInput = Wallpapers.sourceInput
         // Nothing over Home blurs it: a paused film stays (why: at LiveWallpaper below).
         val filmStandsIn = overlay == Overlay.None || overlay is Overlay.ControlCenter || overlay is Overlay.Wallpaper ||
@@ -1071,12 +1083,30 @@ fun HomeScreen(
         LaunchedEffect(kidsLock != null) {
             if (kidsLock != null && vm.overlay !is Overlay.Pin) vm.overlay = Overlay.None
         }
+        // A question mid-panel: the same, answered before the panel is reached again. Not while the
+        // PIN is up, nor under the lock: quizOpen is false there, and the panel stays as it was.
+        LaunchedEffect(quizOpen) {
+            if (quizOpen && vm.overlay != Overlay.None) vm.overlay = Overlay.None
+        }
+        // Setting the TV up on Home is not watching: no question while a panel is open, however
+        // long it stays (QuizWatch counts watching time only).
+        LaunchedEffect(overlay != Overlay.None) {
+            QuizWatch.panelOpen = vm.overlay != Overlay.None
+        }
         KidsLockScreen(
             lock = kidsLock,
             pinOpen = overlay is Overlay.Pin,
             onParent = { right -> vm.overlay = Overlay.Pin(PinMode.Verify) { vm.overlay = Overlay.None; right() } },
             onLeave = { Restricted.suspend(); KidsWatch.poke() },
         )
+
+        // A question between programmes, over everything else: it is answered, not dismissed. A
+        // lock comes first, and a panel being set up waits under it (it is answered, then Home
+        // goes on where it was).
+        QuizBox(visible = quizOpen) {
+            // Answered: resume Home's wallpaper, or return to the interrupted app task.
+            QuizWatch.onAnswered()
+        }
 
         HiddenAppsSheet(
             visible = overlay is Overlay.HiddenApps,

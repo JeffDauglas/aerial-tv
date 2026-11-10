@@ -2,6 +2,23 @@
 
 写给接手 Aerial 的人或 AI。先读这份，再读 [ARCHITECTURE.md](ARCHITECTURE.md) 和 [devices/](devices/)。
 
+## 没发版的新功能（2026-11-09，在 main 上，**2026-11-10 编译和单测通过，未上机**）
+
+- Fork 预发布准备：`JeffDauglas/aerial-tv` 的测试版为 `1.89-test` / versionCode 124，Git 作者邮箱使用用户指定的 `1131740977@qq.com`。使用本机测试签名，发布时必须标为 prerelease 并说明不能覆盖上游正式签名；不部署到上游官网。Lite 本轮不加功能，仍为 1.22 / 24。
+
+- 海信 Android 11 交付检查（2026-11-10）：standard APK 的 minSdk=21、targetSdk=34，含 armeabi-v7a / arm64-v8a；`QuizGateTest` 扩到 SDK 28 / 30，8 项通过。安装包和 Android 11 用的 28.dm 已放在本机 `local/apk/`。本机没有正式签名配置，release 使用本机测试签名，不能覆盖项目官方签名安装；没有卸载或修改电视。海信适配依据 `docs/devices/hisense-vidaa.md` 的既有记录，本轮没有海信真机验证。
+
+- 2026-11-10 国内镜像重试：Gradle 插件和依赖优先走阿里云 Google / Central / Gradle 插件镜像，官方仓库回退；Robolectric 运行时下载走阿里云 Central。`:app:testStandardDebugUnitTest` **266 项通过，0 失败、0 错误**，其中答题 `QuizGateTest` 4 项、`QuizTimeTest` 9 项全部通过。真机仍未验证。
+- 同轮 `assembleStandardRelease assembleGuardRelease` 成功，包含 release 必需 lint 检查；使用本机 `local/quiz-validation/build.init.gradle` 选择 Build Tools 36，日志为 `local/quiz-validation/build-mirror.log`。下面 11-09 的构建受阻记录为历史情况，已由本轮验证更新；真机待办仍需执行。
+
+- 本轮验证限制：`git diff --check` 通过；单测和 release 构建尚未执行成功。离线构建缺 AndroidX / Media3 等缓存，联网重试一直停在依赖解析，已中断；日志和临时构建脚本留在本机 `local/quiz-validation/`，不提交。没有本机电视地址，未安装到电视。
+
+- 答题修复（本机代码检查，尚未真机验证）：首次出题允许 `asked_at=0`，设置变更不再伪造上次出题时间；`filmMoves` 排除 `quizOpen`，答题期间不启动桌面屏保；答完尝试返回被打断的前台 App，遵守儿童模式限制。守护启动时也启动答题计时。新增计时边界、答对关闭、三次答错放行、关闭功能清理状态的回归测试。默认保持每 15 分钟开启，注释已统一。Windows 本机 SDK 的 platform 元数据误写为 `apiDetailsType`，已备份后更正；构建使用临时 init 脚本选择已安装的 Build Tools 36，未改项目构建配置。
+
+- **答题**：每看满 15 分钟（`QuizGate.rules.everyMinutes`，可改 10/15/20/30/关）画面停下出一题二年级算术或英语，答对（或错够 3 次）才继续。新文件 `settings/QuizGate.kt`、`guard/QuizWatch.kt`、`ui/home/QuizBox.kt`，单测 `settings/QuizTimeTest.kt`；接在 `HomeScreen`、`MainActivity`、`ConfigReceiver`（`quiz_now` / `quiz_minutes` / `quiz_kind` / `quiz_off`）、儿童模式设置面板、控制中心的儿童模式页。详见 ARCHITECTURE.md「答题」一节。
+- **待办**：本机只有 JDK 8 / 11、没有 Android SDK，`./gradlew` 跑不了。要有 JDK 17 的环境先跑 `:app:testStandardDebugUnitTest`（`QuizTimeTest` 7 个）和 `assembleStandardRelease`，再上小米 MFTR0 实测：`--ez quiz_now true` 出题、答对继续、`--ei quiz_minutes 1` 等不等得到、别处 App 里到点会不会把 Aerial 拉回来、数字键 1–4、Back 和 Menu 不生效、锁屏（儿童模式锁）时不弹。
+- **没编译，但已用等价实现压测过的**：把 `QuizTime.math` / `english` / `optionsAround` 逐函数移植到 Python，20 万轮随机跑：算术答案与题面一致、和不超过 100、每题恰好四个互不相同的选项、最大偏移 15（单测断言 ≤ 30）；英语三选一、不重复、答案在选项里。同时修掉两处只有真跑才会暴露的问题：① 两两位数相加的第一个加数取到 89 时 `nextInt(11, 100 - a)` 区间为空会抛 `IllegalArgumentException`（已改成 11–79）；② 答案在 0–3 时负数干扰项被滤掉、凑不满四个（已改成从答案往上补）。这两处只有单测能发现，编译时看不出来。
+
 ## 现状（2026-11-08）
 
 - **1.88（versionCode 123）+ Aerial Lite 1.22（24），2026-11-08 下午发布**（[v1.88](https://github.com/pengchujin/aerial-tv/releases/tag/v1.88)）：下面巡检的全部内容，加上 b44711e「我的视频」屏保接力 / 竖拍视频，加上 PR #1366 和实测时发现的三处修复（#1229 待机唤醒打开开机 App）：① `BootOpen` 的写入改成 commit（MFTR0 息屏 1.3 秒后强停 Aerial，apply 的「屏幕关过」没写进去，唤醒后以为已打开过）；② `MainActivity.onResume` 不清 1 秒内刚设的 `openedAppSinceHome`（开机 App 在 onResume 里同步打开，随即被清，`leftForAnApp` 成了 false），守护的 `aerialCoveredUnseen` 也排除 `leftForAnApp`；③ `bootTargetCovered` 开机窗口外也认 15 秒内刚打开的目标（`WAKE_TARGET_COVER_MS`，唤醒后 PatchWall 约 2 秒后盖上来）。**MFTR0 实测**（户主用遥控器待机 1 分钟以上再开机，开机 App 临时设成云视听小电视）：前三版分别卡在上面三处，最后一版唤醒后打开、被 PatchWall 盖住后重开、留在云视听小电视；按主页键回 Aerial、不再打开；测完开机 App 改回不打开（boot_app=null）。注意小米待机后网络 ADB 会断，`KEYCODE_SLEEP` 之后只能等遥控器开机。三个包签名 e089…；小米 `install-multiple` standard + 31.dm（speed-profile / install-dm），`selftest.sh` 守护、主页键（从设置 0.4 秒）、`INPUTS=1` 8 个信号源通过；TCL `APK_FILE=… KEEP_ADB=1 tools/install.sh guard`（多屏互动，截图确认焦点在「同意」再按确定），compile speed，`selftest.sh` 守护、主页键（从酷控 5.2 秒）、`INPUTS=1` 7 个信号源、hid 主页键通过，两个 walleve 服务、屏保 AerialDream 保留。官网已部署：version.txt = v1.88，notes.json 有 1.88，三个 APK md5 与 Release 一致，`/diag/aerial-710.apk` 还在。#1367 #1283 #1348 #1229 和 PR #1366 #1372 #1248 #1373 贴了发布链接（`local/triage/release-1.88-posts.py`）。**下次发版 versionCode ≥ 124，Lite ≥ 25。** PR #1375 仍等户主定。

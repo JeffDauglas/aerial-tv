@@ -72,7 +72,9 @@ import app.orchard.tv.ui.theme.canvasDensity
 import app.orchard.tv.ui.components.UhdCanvas
 import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.settings.Restricted
+import app.orchard.tv.settings.QuizGate
 import app.orchard.tv.guard.KidsWatch
+import app.orchard.tv.guard.QuizWatch
 import app.orchard.tv.apps.SOURCE_KEY_PREFIX
 import app.orchard.tv.wallpaper.PhoneServer
 import app.orchard.tv.wallpaper.Wallpapers
@@ -271,6 +273,7 @@ class MainActivity : ComponentActivity() {
         AerialSettings.init(this)
         Restricted.init(this)
         KidsWatch.start(this)
+        QuizWatch.start(this)
         // After the settings: the artwork's size follows the number of apps a row.
         TileArtFactory.useCanvasDensity(canvasDensity(resources.displayMetrics) * uhd)
         Sounds.init(this)
@@ -656,6 +659,7 @@ class MainActivity : ComponentActivity() {
         } else {
             writer.println(HomeGuardService.diagnosticState())
             writer.println(KidsWatch.diagnosticState())
+            writer.println(QuizWatch.diagnosticState())
             DiagLog.dump(writer)
         }
     }
@@ -685,6 +689,7 @@ class MainActivity : ComponentActivity() {
      * starts nothing on the timer, and Back starts the firmware's.
      */
     private fun startScreensaver(asked: Boolean) {
+        if (QuizGate.showing) return
         AerialSettings.relock()
         // A parent who left Kids mode has walked away.
         Restricted.rearm()
@@ -987,6 +992,7 @@ class MainActivity : ComponentActivity() {
     private fun resumeWork() {
         vm.resumed = true
         KidsWatch.homeInFront = true
+        QuizWatch.homeInFront = true
         idleHandler.removeCallbacks(endHomeBounce)
         vm.homeBounce = false
         DiagLog.i("onResume; screensaver after ${idleBeforeScreensaver() / 1000} s")
@@ -1034,6 +1040,7 @@ class MainActivity : ComponentActivity() {
         if (locked) return
         vm.resumed = false
         KidsWatch.homeInFront = false
+        QuizWatch.homeInFront = false
         Updates.onHomePaused()
         DiagLog.i("onPause")
         leftForAnApp = openedAppSinceHome

@@ -94,7 +94,6 @@ import app.orchard.tv.apps.SourceLooks
 import app.orchard.tv.settings.AerialSettings
 import app.orchard.tv.settings.Restricted
 import app.orchard.tv.settings.RestrictedKind
-import app.orchard.tv.ui.home.kidsTimeLine
 import app.orchard.tv.system.HisenseLaserPanel
 import app.orchard.tv.system.HomeStatus
 import app.orchard.tv.system.LaunchFallback
@@ -109,6 +108,8 @@ import app.orchard.tv.ui.components.liquidGlass
 import app.orchard.tv.ui.home.MenuRow
 import app.orchard.tv.ui.home.VpnBadge
 import app.orchard.tv.ui.home.dateText
+import app.orchard.tv.ui.home.kidsTimeLine
+import app.orchard.tv.ui.home.quizLine
 import app.orchard.tv.ui.home.timeText
 import app.orchard.tv.ui.theme.Glyph
 import app.orchard.tv.ui.theme.GlyphIcon
@@ -239,6 +240,10 @@ private fun KidsPage(vm: HomeViewModel, now: LocalDateTime, takeFocus: Boolean) 
         BasicText(timeText(now), style = Type.SmallClock.copy(fontSize = Type.LargeTitle.fontSize * 1.05f))
         BasicText(dateText(now), style = Type.Callout)
         kidsTimeLine()?.let {
+            Spacer(Modifier.height(6.dp))
+            BasicText(it, style = Type.Callout.copy(color = Palette.SecondaryLabel))
+        }
+        quizLine()?.let {
             Spacer(Modifier.height(6.dp))
             BasicText(it, style = Type.Callout.copy(color = Palette.SecondaryLabel))
         }

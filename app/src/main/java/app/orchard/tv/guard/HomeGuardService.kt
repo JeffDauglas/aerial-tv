@@ -432,6 +432,7 @@ class HomeGuardService : AccessibilityService() {
         activityCache.clear()
         refreshStockHomes()
         KidsWatch.start(this@HomeGuardService)
+        QuizWatch.start(this@HomeGuardService)
         checkMouseWithFilter(this@HomeGuardService)
         restartForegroundCheck()
         watchCecInput()
@@ -738,6 +739,7 @@ class HomeGuardService : AccessibilityService() {
         // receiver starts them instead.
         if (GuardSetup.isUserUnlocked(this)) {
             KidsWatch.start(this)
+            QuizWatch.start(this)
             BootOpen.noteStartedInStandby(this)
         }
         checkMouseWithFilter(this)
@@ -2292,6 +2294,9 @@ class HomeGuardService : AccessibilityService() {
         private var instance: HomeGuardService? = null
 
         val isRunning: Boolean get() = instance != null
+
+        /** Last foreground package observed by accessibility, before a quiz interrupts it. */
+        fun foregroundPackage(): String? = instance?.lastWindow?.first
 
         /** Brings Aerial's Home to the front as Home does; false while the guard is not running. */
         fun bringAerialBack(): Boolean {
